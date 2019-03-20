@@ -204,3 +204,164 @@ def detectFaces(image):
             (startX, startY, endX, endY) = box.astype("int")
             retval.append(dlib.rectangle(startX, startY, endX, endY))
     return retval
+
+
+def detect_card_from_face_region(rgb_image, bbox):
+    # Detect card in the face region, extending bottom, left, and right by 10%
+    width = abs(bbox.right() - bbox.left())
+    height = abs(bbox.bottom() - bbox.top())
+
+    new_bottom = bbox.bottom() + int(height * 0.1)
+    if new_bottom >= rgb_image.shape[0]:
+        new_bottom = rgb_image.shape[0] - 1
+    new_left = bbox.left() - int(width * 0.1)
+    if new_left < 0:
+        new_left = 0
+    new_right = bbox.right() + int(width * 0.1)
+    if new_right >= rgb_image.shape[1]:
+        new_right = rgb_image.shape[1] - 1
+    
+    #cropped = rgb_image[bbox.top():new_bottom, new_left:new_right, :]
+    card_face_rect = dlib.rectangle(new_left, bbox.top(), new_right, new_bottom)
+
+    # (x, y, w, h) = face_utils.rect_to_bb(card_face_rect)
+    # cv2.rectangle(rgb_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    card_shape = face_utils.shape_to_np(dlib_card_predictor(rgb_image, card_face_rect))
+    return card_shape
+
+def computePupillaryDistance(bgr_image,name):
+
+    lightMessage = ''
+  
+
+    rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB);
+    # rgb_image = bgr_image
+    if rgb_image.shape[1] > 500:
+        rgb_image = imutils.resize(rgb_image, width=500)
+
+    opencv_detector = True;
+    dets = detectFaces(rgb_image)
+    
+    if not dets:
+        opencv_detector = False
+        dets = face_detector(rgb_im2age, 1)
+
+    if not dets:
+        # print("Here I have reached")
+        
+        #cv2.putText(photo, 'Face could not be found', (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_RED, 2)
+        return 0, lightMessage + "No Face Found."
+    
+
+    det = dets[0]
+    if opencv_detector:
+        # print('Using OpenCV detections')
+        bbox = det
+    else:
+        bbox = det.rect if USE_CNN else det;
+        
+    face = bgr_image[bbox.top():bbox.bottom(), bbox.left():bbox.right(), :]
+
+    #cv2.imwrite('/home/ubuntu/face.jpg', face)
+
+    if (face.shape[0] == 0) or (face.shape[1] == 0):
+        #cv2.putText(bgr_image, 'Error: Invalid Face', (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_RED, 2)
+        return 0, lightMessage + "Face not completely visible!"
+
+    landmarks = landmark_predictor(rgb_image, bbox)
+    landmarks = face_utils.shape_to_np(landmarks)
+
+    left_eye, right_eye = getPupilLocations(face, bbox, landmarks);    
+    #cv2.line(bgr_image, (int(left_eye_x), int(left_eye_y)), (int(right_eye_x), int(right_eye_y)), (0, 0, 255), 2)
+    
+    cv2.line(rgb_image, (int(left_eye[0]), int(left_eye[1])), (int(right_eye[0]), int(right_eye[1])), (0,255,0), 3)
+    
+    # Finding Eucledian distance between eye balls
+    dx = left_eye[0] - right_eye[0]
+    dy = left_eye[1] - right_eye[1]
+
+    #Compute PD in pixels
+    eyes_distance_in_px = math.sqrt(dx ** 2 + dy ** 2)
+
+
+    if not isValidPD(MLPD):
+        MLPD = 0;
+        MLPD_status = lightMessage + "Cannot measure pupillary distance";
+
+    card_points = detect_card_from_face_region(rgb_image, bbox)
+    dx = card_points[0][0] - card_points[1][0]
+    dy = card_points[0][1] - card_points[1][1]
+
+    card_distance_in_px = math.sqrt(dx ** 2 + dy ** 2)
+    # print("pixeles distance")
+    # print(card_distance_in_px)
+
+   
+    # font = cv2.FONT_HERSHEY_SIMPLEX
+    # cv2.putText(rgb_image,"Pupillary Distance is" ,(10,500),font,4,(255,255,255),2,cv2.LINE_AA)
+    
+
+    # font = cv2.FONT_HERSHEY_SIMPLEX
+    # cv2.putText(img,'OpenCV',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA
+
+
+
+    PD = (eyes_distance_in_px / card_distance_in_px) * CREDIT_CARD_WIDTH_MM
+
+    cv2.line(rgb_image, (card_points[0][0], card_points[0][1]), (card_points[1][0], card_points[1][1]), (0,255,0), 3)        
+    
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    
+    cv2.putText(rgb_image, "Distance: {}mm (Updated Formula)".format( round(PD,2)) ,(10,50), font, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+
+
+
+    # cv2.imshow('My_Image . ', rgb_image)
+    # cv2.waitKey()
+    # exit()
+
+    # cv2.imwrite("/home/hassanahmed/PycharmProjects/PP_TESTING/Pupillary Distance/RESULTS/18_feb_results/" + name + ".jpg",rgb_image)
+   
+
+    print(PD)
+    if isValidPD(PD):
+        #cv2.putText(bgr_image, 'Pupillary Distance Contour = ' + str(round(PD, 1)) + ' mm', (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_RED, 2)
+        return PD, "Ok"
+    
+    else:
+        return " ", "Sorry, Card Detection failed. Try Again!"
+
+    if card_warning_message is not None:
+        cv2.putText(bgr_image, card_warning_message, (20, bgr_image.shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_RED, 2)
+
+    #that will be the final output of the compute pujpliaary distance method . .. , PD and the final image on which paterns have been drawn . . .     
+    # return PD, rgb_image;
+
+
+
+
+
+def main_image(path):
+    # items = os.listdir(path)
+
+    # path= "/home/hassanahmed/PycharmProjects/PP_TESTING/Pupillary Distance/RESULTS"
+    name = os.path.basename(path)
+
+    photo = cv2.imread(path)
+
+
+    heigt, width ,channel = photo.shape
+    # print (heigt, width,channel)
+
+    new_photo = cv2.resize(photo,(3220,4088))
+
+    new_photo = imutils.resize(new_photo, width=  500)
+
+    heigt, width ,channel = new_photo.shape
+        
+    # A, B =computePupillaryDistance(new_photo,name);
+    # print (A)
+    # print(B)
+    computePupillaryDistance(new_photo,name)
+    
