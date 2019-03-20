@@ -365,3 +365,11 @@ def main_image(path):
     # print(B)
     computePupillaryDistance(new_photo,name)
     
+
+
+if __name__ == '__main__':
+
+    pic_path=  "/home/hassanahmed/PycharmProjects/PP_TESTING/Pupillary Distance/pic2.jpg"
+
+    # main_image_2(path)
+    main_image(pic_path)
