@@ -174,19 +174,6 @@ def getPupilLocations(face, bbox, landmarks):
 
     return left_eye, right_eye;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 def detectFaces(image):
     # print('Calling OpenCV DNN')
     (h, w) = image.shape[:2]
