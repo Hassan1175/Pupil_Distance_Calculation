@@ -6,25 +6,32 @@ import os, sys
 
 
 
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
+
+CARD_DETECTOR_PATH = "{base_path}/deps/card_detector.svm".format(base_path=BASE_PATH)
+FACE_DETECTOR_PATH = "{base_path}/deps/mmod_human_face_detector.dat".format(base_path=BASE_PATH)
+EYE_DETECTOR_PATH = "{base_path}/deps/haarcascade_eye.xml".format(base_path=BASE_PATH)
+LANDMARK_PREDICTOR_PATH = "{base_path}/deps/shape_predictor_68_face_landmarks.dat".format(base_path=BASE_PATH)
+PUPIL_PREDICTOR_PATH = "{base_path}/deps/pupil_predictor.dat".format(base_path=BASE_PATH)
+
 #This is the Caffe based ResNet+SSD model for face detection to be used in OpenCV
 FACE_MODEL_PATH = "{base_path}/deps/res10_300x300_ssd_iter_140000.caffemodel".format(base_path=BASE_PATH)
 FACE_PROTO_PATH =  "{base_path}/deps/deploy.prototxt.txt".format(base_path=BASE_PATH)
 
 
+
+DLIB_CARD_PREDICTOR_PATH = "{base_path}/deps/card_predictor.dat".format(base_path=BASE_PATH)
+
+
+dlib_card_predictor = dlib.shape_predictor(DLIB_CARD_PREDICTOR_PATH)
+card_detector = dlib.simple_object_detector(CARD_DETECTOR_PATH);
+face_detector = dlib.cnn_face_detection_model_v1(FACE_DETECTOR_PATH) if USE_CNN else dlib.get_frontal_face_detector()
+eye_detector = cv2.CascadeClassifier(EYE_DETECTOR_PATH);
+landmark_predictor = dlib.shape_predictor(LANDMARK_PREDICTOR_PATH)
+pupil_predictor = dlib.shape_predictor(PUPIL_PREDICTOR_PATH)
+
+
 face_detector_cv = cv2.dnn.readNetFromCaffe(FACE_PROTO_PATH, FACE_MODEL_PATH)
-
-
-
-
-
-#That method has been implemented in order find out that either lightening condition 
-#is sufficient or not . . . . That method also has not been used in the final version of code . . .
-
-
-
-
-
-
 
 
 
@@ -51,6 +58,9 @@ def getSaliencyMap(pic):
 
 
 
+
+#That method has been implemented in order find out that either lightening condition 
+#is sufficient or not . . . . That method also has not been used in the final version of code . . .
 
 
 def isLightAdequate(y):
