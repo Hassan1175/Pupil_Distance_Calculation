@@ -57,8 +57,6 @@ def getSaliencyMap(pic):
 
 
 
-
-
 #That method has been implemented in order find out that either lightening condition 
 #is sufficient or not . . . . That method also has not been used in the final version of code . . .
 
@@ -89,6 +87,102 @@ def preProcess(bgr_image):
     adequateLight, lightMessage = isLightAdequate(ycrcb[:,:,0])
     ycrcb[:,:,0] = CLAHE.apply(ycrcb[:,:,0])
     return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR), adequateLight, lightMessage
+
+
+
+
+
+#Given the face image, try to detect location of pupils
+def getPupilLocations(face, bbox, landmarks):
+
+    face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY);
+
+    #First try OpenCV's Haar classifier for eye detection
+    eyes = eye_detector.detectMultiScale(face_gray);
+
+    left_eye = (0,0);
+    right_eye = (0,0);
+
+    if len(eyes) > 1:
+        eyes = eyes[0:2]
+        (startX, startY, w, h) = eyes[0]
+        
+        rect = dlib.rectangle(startX, startY, startX + w, startY + h)
+        
+        #Apply pupil prediction model to determine pupil loaction
+        shape = face_utils.shape_to_np(pupil_predictor(face_gray, rect))
+        
+        fx = 0
+        fy = 0
+        for (i, (x, y)) in enumerate(shape):
+            px = int(x)
+            py = int(y)
+            fx += int(x + bbox.left())
+            fy += int(y + bbox.top())
+            cv2.circle(face, (px, py), 1, (0, 0, 255), -1)
+
+        fx = int(fx / 4.0)
+        fy = int(fy / 4.0)
+        left_eye = (fx,fy)
+
+        (startX, startY, w, h) = eyes[1]
+        rect = dlib.rectangle(startX, startY, startX + w, startY + h)
+        
+        #Apply pupil prediction model to determine pupil loaction
+        shape = face_utils.shape_to_np(pupil_predictor(face_gray, rect))
+
+        fx = 0
+        fy = 0
+        for (i, (x, y)) in enumerate(shape):
+            px = int(x)
+            py = int(y)
+            fx += int(x + bbox.left())
+            fy += int(y + bbox.top())
+            cv2.circle(face, (px, py), 1, (0, 0, 255), -1)
+        fx = int(fx / 4.0)
+        fy = int(fy / 4.0)
+        right_eye = (fx,fy);
+
+        name = '/home/ubuntu/face_' + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f') + '.jpg'
+        #cv2.imwrite(name, face)
+    else:
+        #If Haar cannot detect eyes, then predict eye locations using facial landmarks
+        # print('Using Landmarks')
+        LEFT_EYE = landmarks[36:42]
+        left_x = []
+        left_y = []
+
+        for i in LEFT_EYE:
+            left_x.append(i[0])
+            left_y.append(i[1])
+        left_eye_x = round(np.mean(left_x))
+        left_eye_y = round(np.mean(left_y))
+
+        # finding landmarks on right eyes
+        RIGHT_EYE = landmarks[42:48]
+        right_x = []
+        right_y = []
+        for i in RIGHT_EYE:
+            right_x.append(i[0])
+            right_y.append(i[1])
+
+        right_eye_x = round(np.mean(right_x))
+        right_eye_y = round(np.mean(right_y))
+
+        left_eye = (left_eye_x, left_eye_y)
+        right_eye = (right_eye_x, right_eye_y);
+
+    return left_eye, right_eye;
+
+
+
+
+
+
+
+
+
+
 
 
 
