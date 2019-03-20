@@ -3,6 +3,31 @@ import numpy as np
 import math, datetime
 import dlib, cv2
 import os, sys
+rom imutils import face_utils
+import imutils
+from os import listdir
+from os.path import join, isfile
+# import pandas as pd
+
+
+# Drawing colors
+COLOR_GREEN = (0, 255,0)
+COLOR_RED = (0, 0, 255)
+
+# Real width of a credit card in millimeters
+CREDIT_CARD_WIDTH_MM = 90
+
+# Use MMOD Convolution Neural Network for face detection
+USE_CNN = True
+
+
+# Show debugging images
+DEBUG = False
+
+#Range of valid PD
+MINIMUM_PD = 50
+MAXIMUM_PD = 78
+
 
 
 
@@ -34,9 +59,7 @@ pupil_predictor = dlib.shape_predictor(PUPIL_PREDICTOR_PATH)
 face_detector_cv = cv2.dnn.readNetFromCaffe(FACE_PROTO_PATH, FACE_MODEL_PATH)
 
 
-
-
-#Determine if a PD value is in valid range
+#To check that either the PD is in correct  range or not.  . .
 def isValidPD(PD):
     PD = round(PD)
     # print(PD, MINIMUM_PD, MAXIMUM_PD)
@@ -53,8 +76,6 @@ def getSaliencyMap(pic):
     kernel = np.ones((7, 7), np.uint8)
     erosion = cv2.erode(threshold, kernel, iterations=1)
     return erosion
-
-
 
 
 #That method has been implemented in order find out that either lightening condition 
@@ -87,8 +108,6 @@ def preProcess(bgr_image):
     adequateLight, lightMessage = isLightAdequate(ycrcb[:,:,0])
     ycrcb[:,:,0] = CLAHE.apply(ycrcb[:,:,0])
     return cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR), adequateLight, lightMessage
-
-
 
 
 
@@ -218,9 +237,8 @@ def detect_card_from_face_region(rgb_image, bbox):
     return card_shape
 
 def computePupillaryDistance(bgr_image,name):
-
-    lightMessage = ''
-  
+    
+    lightMessage = ''  
 
     rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB);
     # rgb_image = bgr_image
@@ -292,8 +310,6 @@ def computePupillaryDistance(bgr_image,name):
     # font = cv2.FONT_HERSHEY_SIMPLEX
     # cv2.putText(img,'OpenCV',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA
 
-
-
     PD = (eyes_distance_in_px / card_distance_in_px) * CREDIT_CARD_WIDTH_MM
 
     cv2.line(rgb_image, (card_points[0][0], card_points[0][1]), (card_points[1][0], card_points[1][1]), (0,255,0), 3)        
@@ -302,15 +318,12 @@ def computePupillaryDistance(bgr_image,name):
     
     cv2.putText(rgb_image, "Distance: {}mm (Updated Formula)".format( round(PD,2)) ,(10,50), font, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
 
-
-
     # cv2.imshow('My_Image . ', rgb_image)
     # cv2.waitKey()
     # exit()
 
     # cv2.imwrite("/home/hassanahmed/PycharmProjects/PP_TESTING/Pupillary Distance/RESULTS/18_feb_results/" + name + ".jpg",rgb_image)
    
-
     print(PD)
     if isValidPD(PD):
         #cv2.putText(bgr_image, 'Pupillary Distance Contour = ' + str(round(PD, 1)) + ' mm', (20, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, COLOR_RED, 2)
@@ -324,9 +337,6 @@ def computePupillaryDistance(bgr_image,name):
 
     #that will be the final output of the compute pujpliaary distance method . .. , PD and the final image on which paterns have been drawn . . .     
     # return PD, rgb_image;
-
-
-
 
 
 def main_image(path):
@@ -351,8 +361,6 @@ def main_image(path):
     # print (A)
     # print(B)
     computePupillaryDistance(new_photo,name)
-    
-
 
 if __name__ == '__main__':
 
