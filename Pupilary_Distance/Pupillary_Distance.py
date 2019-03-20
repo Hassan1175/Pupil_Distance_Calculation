@@ -20,6 +20,39 @@ face_detector_cv = cv2.dnn.readNetFromCaffe(FACE_PROTO_PATH, FACE_MODEL_PATH)
 #That method has been implemented in order find out that either lightening condition 
 #is sufficient or not . . . . That method also has not been used in the final version of code . . .
 
+
+
+
+
+
+
+
+
+
+#Determine if a PD value is in valid range
+def isValidPD(PD):
+    PD = round(PD)
+    # print(PD, MINIMUM_PD, MAXIMUM_PD)
+    # print((PD >= MINIMUM_PD) and (PD <= MAXIMUM_PD))
+    return (PD >= MINIMUM_PD) and (PD <= MAXIMUM_PD);
+
+
+#Calculate thresholded saliency map to isolate black strip of card
+#That method has also not been used in the final version of the code ..  .
+def getSaliencyMap(pic):    
+    (success, saliencyMap) = saliency.computeSaliency(pic)
+    saliencyMap = np.uint8(saliencyMap * 255)  
+    threshold = cv2.threshold(saliencyMap, 35, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    kernel = np.ones((7, 7), np.uint8)
+    erosion = cv2.erode(threshold, kernel, iterations=1)
+    return erosion
+
+
+
+
+
+
+
 def isLightAdequate(y):
     NUM_BINS = 10;
     total_pixels = y.shape[0] * y.shape[1];
